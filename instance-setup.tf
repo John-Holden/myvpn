@@ -82,7 +82,7 @@ root_block_device {
 
 resource "aws_key_pair" "ssh_key" {
   key_name   = "ssh-key"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4D5SASj9GvEJyfEjGZkHLaPgqvab+IZ8BnXjUsA8iC2ZejnF+KiSwIhw1Xx9OqbTsyNJKStn8XPJ9U1+uJf9jUSKgvv5M9zaqB1QexNAarWzNDb08yLx8QLmaZzKeUw80/gv6y1HuZp5dqiauRNI4B+tKjnLDqTJWK2CltBg7puAcpP3E1ooi1E2vH4S1ZPbm3pka7ZFfXzr0zniw2K+MfO/Uc9HHvvXOq1rAvZCHS0XmVvUjVnf86QP4KMxtUxqhb7Cv6Z9GzZofWkq6cNHxjTEkD+K5EuOj+TaCWcXMsW7AX4Uitf/niWSiDQ2NSIW9n+CZja4sD9ZZBS8AjPzt4OIaVFUMICMnXMpUiY9fWsQkj0MhLcOWz6eoygdPZNm4w8vKilAHcjJ5C0Hve5Wis20dWzNvdh7AeouVuDH00cQmI68rFjVCccugqraOZzM67DkGjOVykuET9Mlnf5bNFx0jYyHz44awXurjzIinczAs+k5Xhyp3nel+kVvbKCk= john@john-XPS-15-9500"
+  public_key = var.public_ssh
   }
 
 resource "aws_network_interface" "web_interface" {
