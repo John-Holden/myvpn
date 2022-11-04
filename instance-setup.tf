@@ -67,12 +67,14 @@ resource "aws_route_table_association" "sb_a_rta" {
 ####################################################
 
 resource "aws_instance" "webserver" {
-ami           = "ami-0aca9de1791dcec2a" // Deb-11
-instance_type = "t2.medium"
-subnet_id     = aws_subnet.sb_a.id
-key_name      =  aws_key_pair.ssh_key.key_name
+ami                  = "ami-0aca9de1791dcec2a" // Deb-11
+instance_type        = "t2.medium"
+subnet_id            =  aws_subnet.sb_a.id
+key_name             =  aws_key_pair.ssh_key.key_name
+user_data            = file("${path.module}/bootstrap.sh")
+iam_instance_profile = "${aws_iam_instance_profile.myvpn.id}"
 tags          = {
-  Name        = "My EC2 instance",
+    name        = "myvpn",
   }
 root_block_device {
     volume_size = 20
@@ -94,26 +96,11 @@ resource "aws_eip" "ssh_ip" {
  instance = aws_instance.webserver.id
 }
 
-# resource "aws_spot_instance_request" "cheap_webserver" {
-#   spot_price    = "0.0100"
-#   ami           = "ami-0aca9de1791dcec2a" // Deb-11
-#   instance_type = "t2.medium"
-#   subnet_id     = aws_subnet.sb_a.id
-#   key_name      =  aws_key_pair.ssh_key.key_name
-
-#   tags = {
-#     Name = "CheapWorker"
-#   }
-#   root_block_device {
-#     volume_size = 20
-#   }
-# }
-
 ###################################################
 # SSH security groups
 ####################################################
 
-resource "aws_security_group" "tree_epi_app" {
+resource "aws_security_group" "allow_ssh" {
 name = "allow-all-sg"
 vpc_id = aws_vpc.main.id
 # Allow SSH 
@@ -128,6 +115,85 @@ ingress {
 }
 
 resource "aws_network_interface_sg_attachment" "sg_attachment" {
-  security_group_id    = aws_security_group.tree_epi_app.id
+  security_group_id    = aws_security_group.allow_ssh.id
   network_interface_id = "${aws_instance.webserver.primary_network_interface_id}"
+}
+
+###################################################
+# IAM policy for SSM
+####################################################
+resource "aws_iam_instance_profile" "myvpn" {
+  name = "myvpn"
+  role = aws_iam_role.role.name
+}
+
+resource "aws_iam_role_policy_attachment" "myvnp-attach" {
+  role       = aws_iam_role.role.name
+  policy_arn = aws_iam_policy.ssm.arn
+}
+
+resource "aws_iam_role" "role" {
+  name = "myvpn"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "ssm" {
+  name        = "ssm"
+  description = "My test policy"
+
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression result to valid JSON syntax.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ssm:SendCommand",
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:ssm:*:*:document/*"
+      },
+      {
+        Action = [
+            "ssm:SendCommand",
+            ],
+        Effect = "Allow",
+        Resource = aws_instance.webserver.arn,
+      },
+      {
+        Effect = "Allow",
+        Action = [
+            "ssm:StartSession"
+            ],
+        Resource = [
+            aws_instance.webserver.arn,
+            ]
+      },
+      # {
+      #   Effect = "Allow",
+      #   Action = [
+      #       "ssm:TerminateSession",
+      #       "ssm:ResumeSession"
+      #       ],
+      #   Resource = [
+      #       "arn:aws:ssm:*:*:session/${aws:username}-*"
+      #       ]
+      #   }
+      ]
+  })
 }
