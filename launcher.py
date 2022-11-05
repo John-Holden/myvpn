@@ -54,8 +54,6 @@ parser.add_argument('--config',
                     help='configure your vpn server')
 
 
-
-
 args = parser.parse_args()
 
 lm.ssh_connect() if args.ssh else None
