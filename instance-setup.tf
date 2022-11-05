@@ -103,13 +103,34 @@ resource "aws_eip" "ssh_ip" {
 resource "aws_security_group" "allow_ssh" {
 name = "allow-all-sg"
 vpc_id = aws_vpc.main.id
-# Allow SSH 
+
+# Allow SSH
 ingress {
     from_port = 22
     to_port   = 22
     protocol  = "tcp"
     cidr_blocks = [
       "0.0.0.0/0"
+    ]
+  }
+
+# Allow SSM
+ingress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    cidr_blocks = [
+      "0.0.0.0/0"
+    ]
+  }
+
+# Allow SSM
+egress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    cidr_blocks = [
+    "0.0.0.0/0"
     ]
   }
 }
@@ -129,7 +150,8 @@ resource "aws_iam_instance_profile" "myvpn" {
 
 resource "aws_iam_role_policy_attachment" "myvnp-attach" {
   role       = aws_iam_role.role.name
-  policy_arn = aws_iam_policy.ssm.arn
+  # The default ssm policy
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role" "role" {
@@ -150,50 +172,4 @@ resource "aws_iam_role" "role" {
   ]
 }
 EOF
-}
-
-resource "aws_iam_policy" "ssm" {
-  name        = "ssm"
-  description = "My test policy"
-
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "ssm:SendCommand",
-        ]
-        Effect   = "Allow"
-        Resource = "arn:aws:ssm:*:*:document/*"
-      },
-      {
-        Action = [
-            "ssm:SendCommand",
-            ],
-        Effect = "Allow",
-        Resource = aws_instance.webserver.arn,
-      },
-      {
-        Effect = "Allow",
-        Action = [
-            "ssm:StartSession"
-            ],
-        Resource = [
-            aws_instance.webserver.arn,
-            ]
-      },
-      # {
-      #   Effect = "Allow",
-      #   Action = [
-      #       "ssm:TerminateSession",
-      #       "ssm:ResumeSession"
-      #       ],
-      #   Resource = [
-      #       "arn:aws:ssm:*:*:session/${aws:username}-*"
-      #       ]
-      #   }
-      ]
-  })
 }

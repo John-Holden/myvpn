@@ -30,17 +30,40 @@ parser.add_argument('--ssh',
                     action='store_true',
                     help='ssh into your vpn instance')
 
-parser.add_argument('--server_config',
+parser.add_argument('--ssm',
+                    required=False,
+                    action='store_true',
+                    help='ssm into your vpn instance')
+
+
+parser.add_argument('--exec',
+                    type=str, 
+                    required=False,
+                    action='store', 
+                    help='ssm exec a command inside your vpn instance')
+
+
+parser.add_argument('--info',
+                    required=False,
+                    action='store_true',
+                    help='View vpn info')
+
+parser.add_argument('--config',
                     required=False,
                     action='store_true',
                     help='configure your vpn server')
 
 
+
+
 args = parser.parse_args()
 
 lm.ssh_connect() if args.ssh else None
+lm.ssm_connect() if args.ssm else None
+lm.ssm_exec(args.exec) if args.exec else None
 lm.plan_vpn() if args.plan else None
 lm.deploy_vpn() if args.deploy else None
 lm.destroy_vpn() if args.destroy else None
 lm.redeploy_vpn() if args.redeploy else None
-lm.server_vpn_setup() if args.server_config else None
+lm.showvpn_address() if args.info else None
+lm.config_vpn() if args.config else None
