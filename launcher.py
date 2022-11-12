@@ -3,7 +3,7 @@
 import argparse
 import launcher_methods as lm
 
-parser = argparse.ArgumentParser(description='Launch vpn to the cloud.')
+parser = argparse.ArgumentParser(description='Launch a disponsable vpn to the cloud.')
 
 parser.add_argument('--deploy',
                     required=False,
@@ -35,13 +35,11 @@ parser.add_argument('--ssm',
                     action='store_true',
                     help='ssm into your vpn instance')
 
-
 parser.add_argument('--exec',
                     type=str, 
                     required=False,
                     action='store', 
                     help='ssm exec a command inside your vpn instance')
-
 
 parser.add_argument('--info',
                     required=False,

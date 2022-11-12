@@ -1,9 +1,15 @@
+import os
 import boto3
 import subprocess
+from typing import Optional
 from botocore.config import Config
 
+"""
+   Methods file to deploy & configure vpn on aws
+"""
+
 # TODO: mk this part of user config etc.
-myvpn_config = Config(
+MYVPN_CONFG = Config(
     region_name = 'eu-west-1',
     signature_version = 'v4',
     retries = {
@@ -11,6 +17,18 @@ myvpn_config = Config(
         'mode': 'standard'
     }
 )
+
+
+# TODO: properly manage cloud providers
+def get_cloud_provider():
+    return "AWS"
+
+# TODO: manage ansible ssh users properly
+def ansible_ssh_user() -> str:
+    if get_cloud_provider() == "AWS":
+        return "admin"
+    
+    raise NotImplementedError()
 
 
 # Plan myvpn from terrafrom
@@ -60,7 +78,7 @@ def getvpn_address() -> str:
     return ""
 
 
-# Get myvnp info 
+# Get myvnp info from field
 def getvpn_info(field: str) -> dict:
     resp = getvpn_address()
     if resp:
@@ -113,8 +131,8 @@ def ssm_connect():
     
 
 # Connect to myvnp instance via ssm 
-def ssm_exec(command: str):
-    ssm = boto3.client('ssm', config=myvpn_config)    
+def ssm_exec(command: str) -> None:
+    ssm = boto3.client('ssm', config=MYVPN_CONFG)    
     try:
         idx=getvpn_info("InstanceId")
         print(f"[i] SSM exec into target instance: {idx}")
@@ -130,10 +148,42 @@ def ssm_exec(command: str):
         raise e
 
 
+# Write ansible inventory file, optionally to a given destination 
+def write_ansible_inventory(dest: Optional[str] = None, name: Optional[str] = None) -> None:
+    import yaml
+
+    hosts_dest = f'{os.getcwd()}' if dest is None else dest
+    hosts_dest = f'{hosts_dest}/myvpnhosts' if dest is None else f'{hosts_dest}/{name}' 
+
+    with open(hosts_dest, 'w') as ansible_inventory:
+        # Default ansible inventory configuration for remote vpn and local machine
+        inv = {"myvpn": 
+                    { 
+                        'vars': { 'ansible_ssh_user': ansible_ssh_user() },
+                        'hosts':  getvpn_info('PublicIp')
+                    },
+                "local":
+                    {   # TODO: setup local openssh install
+                        # 'connection': 'local',
+                        'hosts': 'localhost',
+                    }
+               }
+        
+        yaml.dump(inv, ansible_inventory)
+
+
 # Configure openvpn between remote & local machines
-def config_vpn():
-    import ansible_runner
+def config_vpn(verbose: bool = False):
     # TODO: Setup openvpn between local & remote vpn... 
-    print("here")
+    # 1 sync config...
+    # rsync -avL --progress -e "ssh -i ~/.ssh/id_rsa.pub" /tmp/mytesttodel/* admin@52.213.38.77:/tmp
+    # 2 ssm exec ansible remote
+    # 3 ansible local host 
+    
+    write_ansible_inventory()
+    cmd = "ansible-playbook myvpn_playbook.yaml -i hosts-test"
+    cmd = f"{cmd} --verbose" if verbose else cmd
+    subprocess.run(cmd, shell=True, check=True)
+
 
 

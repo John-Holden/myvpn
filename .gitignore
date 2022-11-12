@@ -1,4 +1,8 @@
-# Byte-compiled / optimized / DLL files
+# Ignore default hosts.yaml generated from myvpn as its likely to contain
+# private ip's and address
+myvpnhosts
+
+## Byte-compiled / optimized / DLL files
 __pycache__/
 
 # Environments

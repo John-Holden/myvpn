@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#####################################################
+# Provision myvnp instance with SSM (& other deps)  
+#####################################################
+
 # Logs send to:
 LOGS="/var/log/myvpn.log"
 
@@ -29,3 +33,9 @@ else
     dpkg -i amazon-ssm-agent.deb
     LOG "SSM is now $(systemctl is-active amazon-ssm-agent)"
 fi
+
+# Install Ansible
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install python3-pip
+python3 -m pip install --user ansible
+export PATH=$PATH:~/.local/bin

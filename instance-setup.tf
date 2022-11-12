@@ -68,7 +68,7 @@ resource "aws_route_table_association" "sb_a_rta" {
 
 resource "aws_instance" "webserver" {
 ami                  = "ami-0aca9de1791dcec2a" // Deb-11
-instance_type        = "t2.medium"
+instance_type        = "t2.small"
 subnet_id            =  aws_subnet.sb_a.id
 key_name             =  aws_key_pair.ssh_key.key_name
 user_data            = file("${path.module}/bootstrap.sh")
