@@ -68,10 +68,10 @@ resource "aws_route_table_association" "sb_a_rta" {
 
 resource "aws_instance" "webserver" {
 ami                  = "ami-0aca9de1791dcec2a" // Deb-11
-instance_type        = "t2.small"
+instance_type        = "t2.micro"
 subnet_id            =  aws_subnet.sb_a.id
 key_name             =  aws_key_pair.ssh_key.key_name
-user_data            = file("${path.module}/bootstrap.sh")
+user_data            = file("../include/vpn_bootstrap.sh")
 iam_instance_profile = "${aws_iam_instance_profile.myvpn.id}"
 tags          = {
     name        = "myvpn",
@@ -80,7 +80,6 @@ root_block_device {
     volume_size = 20
   }
 }
-
 
 resource "aws_key_pair" "ssh_key" {
   key_name   = "ssh-key"
@@ -129,6 +128,26 @@ egress {
     from_port = 443
     to_port   = 443
     protocol  = "tcp"
+    cidr_blocks = [
+    "0.0.0.0/0"
+    ]
+  }
+
+# Allow OpenVpn
+ingress {
+    from_port = 1194
+    to_port   = 1194
+    protocol  = "udp"
+    cidr_blocks = [
+      "0.0.0.0/0"
+    ]
+  }
+
+# Allow OpenVpn
+egress {
+    from_port = 1194
+    to_port   = 1194
+    protocol  = "udp"
     cidr_blocks = [
     "0.0.0.0/0"
     ]

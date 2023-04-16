@@ -1,0 +1,13 @@
+---
+# TODO: ansible to setup openvpn
+- name: Configure openvpn on remote server
+  hosts: myvpn
+  remote_user: root
+
+  tasks:
+  - name: Install openvpn  (state=present is optional)
+    ansible.builtin.apt:
+      name: openvpn
+      state: present
+  - name: Generate static key
+    ansible.builtin.shell: openvpn --genkey --secret static.key

@@ -1,9 +1,0 @@
----
-# TODO: ansible to setup openvpn
-- name: Configure openvpn on remote server
-  hosts: myvpn
-  remote_user: root
-
-  tasks:
-  - name: Setups blah blah on myvpn target vpn
-    ansible.builtin.shell: whoami
