@@ -14,4 +14,4 @@ help: ## This help.
 
 # Setup the local venv
 init:
-	./include/localinit.sh "requirements.txt"
+	./include/local_client_init.sh "requirements.txt"

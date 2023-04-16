@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!venv/bin/python3
 
 import argparse
 import vpn_bin.launcher_methods as lm
