@@ -39,3 +39,8 @@ apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install python3-pip
 python3 -m pip install --user ansible
 export PATH=$PATH:~/.local/bin
+
+# Permit @root login - primarily for ansible
+sed -i 's/^.*ssh-rsa/ssh-rsa/' /root/.ssh/authorized_keys
+sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin without-password/' /etc/ssh/sshd_config
+sysctl restart ssh.service

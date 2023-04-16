@@ -1,14 +1,19 @@
 #!/usr/bin/python3
 
 import argparse
-import launcher_methods as lm
+import vpn_bin.launcher_methods as lm
 
 parser = argparse.ArgumentParser(description='Launch a disponsable vpn to the cloud.')
 
 parser.add_argument('--deploy',
                     required=False,
                     action='store_true',
-                    help='deploy your vpn server')
+                    help='deploy your vpn server via tf conf')
+
+parser.add_argument('--init',
+                    required=False,
+                    action='store_true',
+                    help='init tf config')
 
 parser.add_argument('--plan',
                     required=False,
@@ -51,6 +56,11 @@ parser.add_argument('--config',
                     action='store_true',
                     help='configure your vpn server')
 
+parser.add_argument('--verbose',
+                    required=False,
+                    action='store_true',
+                    help='Provides more output to debug')
+
 
 args = parser.parse_args()
 
@@ -58,8 +68,9 @@ lm.ssh_connect() if args.ssh else None
 lm.ssm_connect() if args.ssm else None
 lm.ssm_exec(args.exec) if args.exec else None
 lm.plan_vpn() if args.plan else None
+lm.init_vpn() if args.init else None
 lm.deploy_vpn() if args.deploy else None
 lm.destroy_vpn() if args.destroy else None
 lm.redeploy_vpn() if args.redeploy else None
 lm.showvpn_address() if args.info else None
-lm.config_vpn() if args.config else None
+lm.config_vpn(args.verbose) if args.config else None

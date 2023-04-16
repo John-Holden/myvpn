@@ -7,8 +7,12 @@ from botocore.config import Config
 """
    Methods file to deploy & configure vpn on aws
 """
+INCLUDE_DIR = "include"
+INFRA_DIR = "vpn_infra"
+VPN_PLAYBOOK = "myvpn_playbook.yaml"
+VPN_HOSTS_NAME = "myvpnhosts"
 
-# TODO: mk this part of user config etc.
+# TODO: conditionally set via cli inputs
 MYVPN_CONFG = Config(
     region_name = 'eu-west-1',
     signature_version = 'v4',
@@ -23,18 +27,26 @@ MYVPN_CONFG = Config(
 def get_cloud_provider():
     return "AWS"
 
+
 # TODO: manage ansible ssh users properly
-def ansible_ssh_user() -> str:
+def ssh_user() -> str:
     if get_cloud_provider() == "AWS":
-        return "admin"
+        return "root"
     
     raise NotImplementedError()
+
+
+# Init myvpn from terrafrom
+def init_vpn():
+    print("[i] Initializing tf config...")
+    subprocess.run(f"cd {INFRA_DIR} && terraform init", shell=True, check=True)
+    return True
 
 
 # Plan myvpn from terrafrom
 def plan_vpn():
     print("[i] Planning instance from tf configuration...")
-    subprocess.run("terraform plan -var-file=my.tfvars", shell=True, check=True)
+    subprocess.run(f"cd {INFRA_DIR} && terraform plan -var-file=my.tfvars", shell=True, check=True)
     return True
 
 
@@ -73,19 +85,10 @@ def getvpn_address() -> str:
     if isrunning(ec2):
         filters = [ {'Name': 'domain', 'Values': ['vpc']} ]
         response = ec2.describe_addresses(Filters=filters)
-        return response["Addresses"][1]
+        return response["Addresses"][0]
         
     return ""
 
-
-# Get myvnp info from field
-def getvpn_info(field: str) -> dict:
-    resp = getvpn_address()
-    if resp:
-        return getvpn_address()[field]
-
-    return {}
-     
 
 # Print myvnp address
 def showvpn_address() -> None:
@@ -98,13 +101,22 @@ def showvpn_address() -> None:
     return
 
 
+# Get myvnp info from field
+def getvpn_info(field: str) -> dict:
+    resp = getvpn_address()
+    if resp:
+        return getvpn_address()[field]
+
+    return {}
+
+
 def ssh_connect():
     # TODO: filter by tag in ec2 instance
     ip = getvpn_info("PublicIp")
     if ip:
         try:
             print(f"[i] SSH'ing into instance {ip}")
-            subprocess.run(f"ssh admin@{ip}", shell=True, check=True)
+            subprocess.run(f"ssh {ssh_user()}@{ip}", shell=True, check=True)
         except Exception as e:
             print("[e] Failed to SSH into instance")
             raise e
@@ -149,22 +161,20 @@ def ssm_exec(command: str) -> None:
 
 
 # Write ansible inventory file, optionally to a given destination 
-def write_ansible_inventory(dest: Optional[str] = None, name: Optional[str] = None) -> None:
+def write_ansible_inventory(dest: Optional[str] = INCLUDE_DIR, name: Optional[str] = None) -> None:
     import yaml
 
-    hosts_dest = f'{os.getcwd()}' if dest is None else dest
-    hosts_dest = f'{hosts_dest}/myvpnhosts' if dest is None else f'{hosts_dest}/{name}' 
+    ansible_hosts_dest =  f'{dest}/{name}' if name else f'{dest}/{VPN_HOSTS_NAME}' 
 
-    with open(hosts_dest, 'w') as ansible_inventory:
+    with open(ansible_hosts_dest, 'w') as ansible_inventory:
         # Default ansible inventory configuration for remote vpn and local machine
         inv = {"myvpn": 
                     { 
-                        'vars': { 'ansible_ssh_user': ansible_ssh_user() },
+                        'vars': { 'ansible_ssh_user': ssh_user() },
                         'hosts':  getvpn_info('PublicIp')
                     },
                 "local":
-                    {   # TODO: setup local openssh install
-                        # 'connection': 'local',
+                    {   
                         'hosts': 'localhost',
                     }
                }
@@ -174,16 +184,13 @@ def write_ansible_inventory(dest: Optional[str] = None, name: Optional[str] = No
 
 # Configure openvpn between remote & local machines
 def config_vpn(verbose: bool = False):
-    # TODO: Setup openvpn between local & remote vpn... 
-    # 1 sync config...
-    # rsync -avL --progress -e "ssh -i ~/.ssh/id_rsa.pub" /tmp/mytesttodel/* admin@52.213.38.77:/tmp
-    # 2 ssm exec ansible remote
-    # 3 ansible local host 
+
+    if not showvpn_address():
+        return
     
     write_ansible_inventory()
-    cmd = "ansible-playbook myvpn_playbook.yaml -i hosts-test"
+
+    # Run playbook
+    cmd = f"ansible-playbook {INCLUDE_DIR}/{VPN_PLAYBOOK} -i {VPN_HOSTS_NAME}"
     cmd = f"{cmd} --verbose" if verbose else cmd
     subprocess.run(cmd, shell=True, check=True)
-
-
-

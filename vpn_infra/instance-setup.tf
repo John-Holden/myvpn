@@ -81,7 +81,6 @@ root_block_device {
   }
 }
 
-
 resource "aws_key_pair" "ssh_key" {
   key_name   = "ssh-key"
   public_key = var.public_ssh
@@ -129,6 +128,26 @@ egress {
     from_port = 443
     to_port   = 443
     protocol  = "tcp"
+    cidr_blocks = [
+    "0.0.0.0/0"
+    ]
+  }
+
+# Allow OpenVpn
+ingress {
+    from_port = 1194
+    to_port   = 1194
+    protocol  = "udp"
+    cidr_blocks = [
+      "0.0.0.0/0"
+    ]
+  }
+
+# Allow OpenVpn
+egress {
+    from_port = 1194
+    to_port   = 1194
+    protocol  = "udp"
     cidr_blocks = [
     "0.0.0.0/0"
     ]
