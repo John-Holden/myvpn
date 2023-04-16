@@ -16,6 +16,7 @@ venv.bak/
 
 # Local .terraform directories
 **/.terraform/*
+*/TF.Plan
 
 # .tfstate files
 *.tfstate

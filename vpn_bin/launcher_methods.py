@@ -7,6 +7,8 @@ from botocore.config import Config
 """
    Methods file to deploy & configure vpn on aws
 """
+
+TF_PLAN=f"TF.Plan"
 INCLUDE_DIR = "include"
 INFRA_DIR = "vpn_infra"
 VPN_PLAYBOOK = "myvpn_playbook.yaml"
@@ -46,14 +48,16 @@ def init_vpn():
 # Plan myvpn from terrafrom
 def plan_vpn():
     print("[i] Planning instance from tf configuration...")
-    subprocess.run(f"cd {INFRA_DIR} && terraform plan -var-file=my.tfvars", shell=True, check=True)
+    subprocess.run(f"cd {INFRA_DIR} && terraform plan -var-file=my.tfvars \
+                                                      -out {TF_PLAN}", shell=True, check=True)
     return True
 
 
 # Deploy myvpn with terrafrom apply
 def deploy_vpn():
     print("[i] Creating instance from tf configuration...")
-    subprocess.run("terraform apply -var-file=my.tfvars", shell=True, check=True)
+    subprocess.run(f"cd {INFRA_DIR} && terraform apply -auto-approve {TF_PLAN}", shell=True, check=True)
+    os.remove(f"{INFRA_DIR}/{TF_PLAN}")
     return True
 
 
@@ -185,12 +189,13 @@ def write_ansible_inventory(dest: Optional[str] = INCLUDE_DIR, name: Optional[st
 # Configure openvpn between remote & local machines
 def config_vpn(verbose: bool = False):
 
-    if not showvpn_address():
+    if not getvpn_address():
+        print("[e] Could not find any running instance!")
         return
     
     write_ansible_inventory()
 
     # Run playbook
-    cmd = f"ansible-playbook {INCLUDE_DIR}/{VPN_PLAYBOOK} -i {VPN_HOSTS_NAME}"
+    cmd = f"ansible-playbook {INCLUDE_DIR}/{VPN_PLAYBOOK} -i {INCLUDE_DIR}/{VPN_HOSTS_NAME}"
     cmd = f"{cmd} --verbose" if verbose else cmd
     subprocess.run(cmd, shell=True, check=True)
